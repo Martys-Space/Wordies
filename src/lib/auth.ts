@@ -15,11 +15,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    async signIn({ user, profile }) {
-      if (!user.email) return true;
+    async signIn({ user, account, profile }) {
+      // account.providerAccountId is always the real Discord user ID
+      const discordId = account?.providerAccountId ?? (profile as { id?: string })?.id;
+      if (!discordId || !user.email) return true;
+
       const { error } = await supabaseAdmin.from("users").upsert(
         {
-          discord_id: (profile as { id?: string })?.id ?? user.id,
+          discord_id: discordId,
           email: user.email,
           username: user.name ?? "",
           avatar_url: user.image ?? "",
@@ -29,9 +32,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (error) console.error("signIn: user upsert failed", error);
       return true;
     },
+    async jwt({ token, account }) {
+      // Persist the Discord ID into the token on first sign-in
+      if (account?.providerAccountId) {
+        token.discordId = account.providerAccountId;
+      }
+      return token;
+    },
     async session({ session, token }) {
-      if (session.user && token.sub) {
-        session.user.id = token.sub;
+      if (session.user) {
+        session.user.id = (token.discordId as string) ?? token.sub ?? "";
       }
       return session;
     },
