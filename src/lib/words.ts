@@ -335,7 +335,28 @@ export function evaluateGuess(guess: string, answer: string): GuessResult[] {
   return result;
 }
 
-export function getRandomWord(length: WordLength, exclude?: string): string {
-  const pool = ANSWERS[length].filter((w) => w !== exclude);
-  return pool[Math.floor(Math.random() * pool.length)];
+const HISTORY_SIZE = 30;
+const isClient = typeof window !== "undefined";
+
+function loadWordHistory(len: number): string[] {
+  if (!isClient) return [];
+  try { return JSON.parse(localStorage.getItem(`wordies_history_${len}`) ?? "[]"); }
+  catch { return []; }
+}
+
+function saveWordHistory(len: number, history: string[]): void {
+  if (!isClient) return;
+  try { localStorage.setItem(`wordies_history_${len}`, JSON.stringify(history)); }
+  catch { /* ignore */ }
+}
+
+export function getNextWord(length: WordLength): string {
+  const history = loadWordHistory(length);
+  const excluded = new Set(history);
+  const pool = ANSWERS[length].filter((w) => !excluded.has(w));
+  // If somehow the entire pool is in history, start fresh
+  const candidates = pool.length > 0 ? pool : ANSWERS[length];
+  const word = candidates[Math.floor(Math.random() * candidates.length)];
+  saveWordHistory(length, [...history, word].slice(-HISTORY_SIZE));
+  return word;
 }

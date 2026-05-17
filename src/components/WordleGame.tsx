@@ -5,9 +5,8 @@ import GameBoard from "./GameBoard";
 import Keyboard from "./Keyboard";
 import {
   evaluateGuess,
-  getDailyWord,
   getMaxGuesses,
-  getRandomWord,
+  getNextWord,
   GuessResult,
   isValidGuess,
   LetterState,
@@ -97,8 +96,8 @@ function getLetterStates(guesses: GuessResult[][]): Record<string, LetterState> 
   return states;
 }
 
-function makeInitialState(len: WordLength): GameState {
-  return { answer: getDailyWord(len), guesses: [], currentGuess: "", gameOver: false, won: false, shake: false, message: "", submitted: false };
+function makeInitialState(_len: WordLength): GameState {
+  return { answer: "", guesses: [], currentGuess: "", gameOver: false, won: false, shake: false, message: "", submitted: false };
 }
 
 function reducer(state: GameState, action: Action): GameState {
@@ -174,7 +173,7 @@ export default function WordleGame({ userId, wordLength, onGameOver }: Props) {
     if (saved) {
       dispatch({ type: "RESTORE", saved });
     } else {
-      dispatch({ type: "RESET", answer: getDailyWord(wordLength) });
+      dispatch({ type: "RESET", answer: getNextWord(wordLength) });
     }
     setStreak(getStreak(wordLength));
   }, [wordLength]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -222,7 +221,7 @@ export default function WordleGame({ userId, wordLength, onGameOver }: Props) {
 
   // ── Next word ──────────────────────────────────────────────────────────────
   const handleNextWord = useCallback(() => {
-    dispatch({ type: "RESET", answer: getRandomWord(wordLength, state.answer) });
+    dispatch({ type: "RESET", answer: getNextWord(wordLength) });
   }, [wordLength, state.answer]);
 
   // ── Keyboard input ─────────────────────────────────────────────────────────
